@@ -1,0 +1,13 @@
+FROM docker.io/library/golang:latest AS builder
+WORKDIR /build
+COPY ../src/go.mod ../src/go.sum ./
+RUN go mod download
+COPY ../src/ .
+ENV CGO_ENABLED=0 GOOS=linux GOARCH=amd64
+RUN go build -trimpath -ldflags="-s -w" -o yapipt
+
+FROM scratch
+COPY --from=builder /build/yapipt /app/yapipt
+WORKDIR /app
+ENTRYPOINT ["/app/yapipt"]
+

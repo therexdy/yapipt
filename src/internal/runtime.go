@@ -8,7 +8,6 @@ import (
 	"yapipt/pkg"
 
 	"github.com/gorilla/websocket"
-	"github.com/joho/godotenv"
 )
 
 
@@ -21,13 +20,12 @@ type ClientConn struct {
 func loadEnv(ENV_VAR string) (string, error){
 	env_var := os.Getenv(ENV_VAR)
 	if(env_var==""){
-		return "", errors.New(ENV_VAR + " not in .env")
+		return "", errors.New(ENV_VAR + " not in env")
 	}
 	return env_var, nil
 }
 
-func (R *Runtime)saveEnv(env_file string) error {
-	godotenv.Load(env_file)
+func (R *Runtime)saveEnv() error {
 	var err error
 
 	R.TCPServePort, err = loadEnv("SERVER_TCP_PORT")
@@ -49,7 +47,7 @@ type Runtime struct{
 func InitRuntime(env_file string) (*Runtime, error) {
 	var R Runtime
 
-	err := R.saveEnv(env_file)
+	err := R.saveEnv()
 	if err != nil {
 		return &R, err
 	}
@@ -71,7 +69,7 @@ func InitRuntime(env_file string) (*Runtime, error) {
 			var msg_json pkg.MsgFrmClntJSON
 			err = json.Unmarshal(message_data, &msg_json)
 			if err!= nil {
-				pkg.LogError("Unmarshal Error for message_data")
+				pkg.LogClientError("Unmarshal Error for message_data")
 				return 
 			}
 			for _, CC := range R.WSConnHub {
