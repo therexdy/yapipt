@@ -1,0 +1,40 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: "yapipt"
+  namespace: default
+  labels:
+    annotations:
+      kubectl.kubernetes.io/default-container:  yapipt
+    app: "yapipt"
+spec:
+  containers:
+  - name: yapipt
+    build:
+        context: ../src/
+        dockerfile: ./Containerfile_Backend
+    image: "yapipt-backend"
+    resources:
+      limits:
+        cpu: 0.25
+        memory: 256Mi
+      requests:
+        cpu: 0.15
+        memory: 64Mi
+#    ports:
+#    - containerPort: 8080
+    volumeMounts:
+    - name: localtime
+      mountPath: /etc/localtime
+    - name: backend
+      mountPath: /app
+
+  volumes:
+    - name: localtime
+      hostPath:
+        path: /usr/share/zoneinfo/Asia/Kolkata
+    - name: backend
+      hostPath:
+        path: ../src/
+  restartPolicy: Always
+

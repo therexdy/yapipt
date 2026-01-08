@@ -1,6 +1,7 @@
 package internal
 
 import (
+	"encoding/json"
 	"net/http"
 	"yapipt/pkg"
 
@@ -37,8 +38,15 @@ func (R *Runtime)InitWSConn(w http.ResponseWriter, r *http.Request) {
 				CC.CloseReaderRoutine = true
 				break
 			}
-			pkg.LogInfo(string(rawBytes))
 			conn.WriteMessage(websocket.TextMessage, []byte("Received"))
+			var envlp pkg.Envelop
+			err = json.Unmarshal(rawBytes, &envlp)
+			if err!=nil{
+				pkg.LogError("Unmarshal Error for rawBytes from client")
+			}
+			if(envlp.Type==pkg.MsgData){
+				R.BroadcastChan <- rawBytes
+			}
 		}
 	}(&CC, R)
 

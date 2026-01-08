@@ -1,6 +1,7 @@
 package internal
 
 import (
+	"encoding/json"
 	"errors"
 	"os"
 	"sync"
@@ -39,11 +40,10 @@ func (R *Runtime)saveEnv(env_file string) error {
 
 type Runtime struct{
 	TCPServePort string
-
 	WSProtoUpgrader websocket.Upgrader
-
 	HubMutex sync.Mutex
 	WSConnHub map[string]*ClientConn
+	BroadcastChan chan []byte
 }
 
 func InitRuntime(env_file string) (*Runtime, error) {
@@ -56,6 +56,29 @@ func InitRuntime(env_file string) (*Runtime, error) {
 
 	R.WSProtoUpgrader = websocket.Upgrader{}
 	R.WSConnHub = make(map[string]*ClientConn)
+
+	R.BroadcastChan = make(chan []byte)
+
+	go func(R *Runtime) {
+		var message_data []byte
+		for{
+			message_data = <- R.BroadcastChan
+			if string(message_data)=="" {
+				continue
+			} else if string(message_data)=="Close" {
+				break
+			}
+			var msg_json pkg.MsgFrmClntJSON
+			err = json.Unmarshal(message_data, &msg_json)
+			if err!= nil {
+				pkg.LogError("Unmarshal Error for message_data")
+				return 
+			}
+			for _, CC := range R.WSConnHub {
+				CC.WSConn.WriteJSON(msg_json)
+			}
+		}
+	}(&R)
 
 	return &R, nil
 }
