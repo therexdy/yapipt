@@ -7,7 +7,7 @@ metadata:
 spec:
   restartPolicy: Always
   containers:
-    - name: yapipt-backend
+    - name: backend
       image: "localhost/yapipt-backend"
       resources:
         limits:
@@ -21,7 +21,7 @@ spec:
           mountPath: /etc/localtime
           readOnly: true
 
-    - name: yapipt-nginx
+    - name: nginx
       image: "localhost/yapipt-nginx"
       resources:
         limits:
