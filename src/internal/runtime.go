@@ -14,6 +14,7 @@ import (
 type ClientConn struct {
 	user string
 	WSConn *websocket.Conn
+	WSConnMutex sync.Mutex
 	CloseReaderRoutine bool
 }
 
@@ -38,7 +39,6 @@ func (R *Runtime)saveEnv() error {
 
 type Runtime struct{
 	TCPServePort string
-	WSProtoUpgrader websocket.Upgrader
 	HubMutex sync.Mutex
 	WSConnHub map[string]*ClientConn
 	BroadcastChan chan []byte
@@ -52,7 +52,6 @@ func InitRuntime(env_file string) (*Runtime, error) {
 		return &R, err
 	}
 
-	R.WSProtoUpgrader = websocket.Upgrader{}
 	R.WSConnHub = make(map[string]*ClientConn)
 
 	R.BroadcastChan = make(chan []byte)
@@ -73,7 +72,9 @@ func InitRuntime(env_file string) (*Runtime, error) {
 				return 
 			}
 			for _, CC := range R.WSConnHub {
+				CC.WSConnMutex.Lock()
 				CC.WSConn.WriteJSON(msg_json)
+				CC.WSConnMutex.Unlock()
 			}
 		}
 	}(&R)

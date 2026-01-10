@@ -9,7 +9,13 @@ import (
 )
 
 func (R *Runtime)InitWSConn(w http.ResponseWriter, r *http.Request) {
-	conn, err := R.WSProtoUpgrader.Upgrade(w,r,nil);
+	WSProtoUpgrader := websocket.Upgrader{
+		CheckOrigin: func(r *http.Request) bool {
+				return true 
+		},
+	}
+
+	conn, err := WSProtoUpgrader.Upgrade(w,r,nil);
 	if err != nil{
 		pkg.LogClientError("WS proto upgrade failed for client " + r.RemoteAddr)
 		return
@@ -23,7 +29,7 @@ func (R *Runtime)InitWSConn(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	CC := ClientConn{ user: user, WSConn: conn, CloseReaderRoutine: false}
+	CC := &ClientConn{ user: user, WSConn: conn, CloseReaderRoutine: false}
 
 	go func(CC *ClientConn, R *Runtime) {
 		conn = CC.WSConn
@@ -46,12 +52,14 @@ func (R *Runtime)InitWSConn(w http.ResponseWriter, r *http.Request) {
 			if(envlp.Type==pkg.MsgData){
 				R.BroadcastChan <- rawBytes
 			}
-			conn.WriteMessage(websocket.TextMessage, []byte("Received"))
+			CC.WSConnMutex.Lock()
+			CC.WSConn.WriteMessage(websocket.TextMessage, []byte("Received"))
+			CC.WSConnMutex.Unlock()
 		}
-	}(&CC, R)
+	}(CC, R)
 
 	R.HubMutex.Lock()
-	R.WSConnHub[user] = &CC
+	R.WSConnHub[user] = CC
 	R.HubMutex.Unlock()
 
 	conn.WriteMessage(websocket.TextMessage , []byte("WS Connection Extablished"))
