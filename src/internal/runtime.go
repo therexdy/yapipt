@@ -44,6 +44,34 @@ type Runtime struct{
 	BroadcastChan chan []byte
 }
 
+func (R *Runtime)BroadcastMsgData(raw_bytes []byte) {
+	var msg_json pkg.MsgDataJSON
+	err := json.Unmarshal(raw_bytes, &msg_json)
+	if err!= nil {
+		pkg.LogClientError("Unmarshal Error for message_data")
+		return 
+	}
+	for _, CC := range R.WSConnHub {
+		CC.WSConnMutex.Lock()
+		CC.WSConn.WriteJSON(msg_json)
+		CC.WSConnMutex.Unlock()
+	}
+}
+
+func (R *Runtime)BroadcastMsgIndct(raw_bytes []byte) {
+	var msg_json pkg.MsgIndctJSON
+	err := json.Unmarshal(raw_bytes, &msg_json)
+	if err!= nil {
+		pkg.LogClientError("Unmarshal Error for message_data")
+		return 
+	}
+	for _, CC := range R.WSConnHub {
+		CC.WSConnMutex.Lock()
+		CC.WSConn.WriteJSON(msg_json)
+		CC.WSConnMutex.Unlock()
+	}
+}
+
 func InitRuntime(env_file string) (*Runtime, error) {
 	var R Runtime
 
@@ -57,27 +85,40 @@ func InitRuntime(env_file string) (*Runtime, error) {
 	R.BroadcastChan = make(chan []byte)
 
 	go func(R *Runtime) {
-		var message_data []byte
+		var raw_bytes []byte
 		for{
-			message_data = <- R.BroadcastChan
-			if string(message_data)=="" {
+			raw_bytes = <- R.BroadcastChan
+			if string(raw_bytes)=="" {
 				continue
-			} else if string(message_data)=="Close" {
+			} else if string(raw_bytes)=="Close" {
 				break
 			}
-			var msg_json pkg.MsgFrmClntJSON
-			err = json.Unmarshal(message_data, &msg_json)
-			if err!= nil {
-				pkg.LogClientError("Unmarshal Error for message_data")
-				return 
+			var envlp pkg.Envelop
+			err = json.Unmarshal(raw_bytes, &envlp)
+			if err!=nil{
+				pkg.LogClientError("Unmarshal Error for rawBytes from client")
 			}
-			for _, CC := range R.WSConnHub {
-				CC.WSConnMutex.Lock()
-				CC.WSConn.WriteJSON(msg_json)
-				CC.WSConnMutex.Unlock()
+			switch envlp.Type {
+			case pkg.MsgData:
+				R.BroadcastMsgData(raw_bytes)
+			case pkg.MsgIndct:
+				R.BroadcastMsgIndct(raw_bytes)
+			default:
+				pkg.LogWarn("Marshal unknown JSON format")
 			}
 		}
+		pkg.LogInfo("Broadcast GoRoutine Closed")
 	}(&R)
 
 	return &R, nil
 }
+
+func (R *Runtime) DeInitRuntime() {
+	R.BroadcastChan <- []byte("Close")
+	for _, CC := range R.WSConnHub {
+		CC.WSConnMutex.Lock()
+		CC.CloseReaderRoutine = true
+		CC.WSConnMutex.Unlock()
+	}
+}
+

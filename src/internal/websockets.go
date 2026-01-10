@@ -44,23 +44,32 @@ func (R *Runtime)InitWSConn(w http.ResponseWriter, r *http.Request) {
 				CC.CloseReaderRoutine = true
 				break
 			}
-			var envlp pkg.Envelop
-			err = json.Unmarshal(rawBytes, &envlp)
-			if err!=nil{
-				pkg.LogClientError("Unmarshal Error for rawBytes from client")
-			}
-			if(envlp.Type==pkg.MsgData){
-				R.BroadcastChan <- rawBytes
-			}
+			R.BroadcastChan <- rawBytes	
 			CC.WSConnMutex.Lock()
 			CC.WSConn.WriteMessage(websocket.TextMessage, []byte("Received"))
 			CC.WSConnMutex.Unlock()
 		}
+		left_client := pkg.MsgIndctJSON{Type: pkg.MsgIndct, IndctType: pkg.Left, User: CC.user}
+		send_bytes, err := json.Marshal(left_client)
+		if err != nil {
+			pkg.LogWarn("Failed to Marshal joined_client")
+		}
+		R.BroadcastChan <- send_bytes
+		pkg.LogInfo("Client Read Channel Closed")
 	}(CC, R)
 
 	R.HubMutex.Lock()
 	R.WSConnHub[user] = CC
 	R.HubMutex.Unlock()
 
-	conn.WriteMessage(websocket.TextMessage , []byte("WS Connection Extablished"))
+	CC.WSConnMutex.Lock()
+	CC.WSConn.WriteMessage(websocket.TextMessage , []byte("WS Connection Extablished"))
+	CC.WSConnMutex.Unlock()
+	
+	joined_client := pkg.MsgIndctJSON{Type: pkg.MsgIndct, IndctType: pkg.Joined, User: user}
+	send_bytes, err := json.Marshal(joined_client)
+	if err != nil {
+		pkg.LogWarn("Failed to Marshal joined_client")
+	}
+	R.BroadcastChan <- send_bytes
 }

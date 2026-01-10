@@ -2,6 +2,9 @@ package main
 
 import (
 	"net/http"
+	"os"
+	"os/signal"
+	"syscall"
 	"yapipt/internal"
 	"yapipt/pkg"
 )
@@ -15,6 +18,13 @@ func main(){
 	mux := http.NewServeMux()
 
 	mux.HandleFunc("/ws", R.InitWSConn)
+
+	sig := make(chan os.Signal, 1)
+	signal.Notify(sig, os.Interrupt, syscall.SIGTERM)
+	go func(R* internal.Runtime) {
+		<- sig
+		R.DeInitRuntime()
+	}(R)
 
 	pkg.LogInfo("Started at :" + R.TCPServePort)
 	err = http.ListenAndServe(":"+R.TCPServePort, mux)
