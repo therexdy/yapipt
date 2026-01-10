@@ -7,23 +7,14 @@ fi
 
 case "$1" in
     "start")
-        podman kube play ./secrets.yaml ./play.yaml &
-        if exec podman kube play ./secrets.yaml ./play.yaml ; then
-            printf -- "\n[I] Started\n\n"
-        elif cat ./secrets.yaml ./play.yaml | podman kube play - ; then
-            printf -- "\n[I] Started with fall back\n\n"
-        fi
+        podman kube play ./combined.yaml &
         ;;
     "stop")
-        podman kube down ./play.yaml
+        podman kube down ./combined.yaml
         ;;
     "restart")
-        podman kube down ./play.yaml
-        if exec podman kube play ./secrets.yaml ./play.yaml ; then
-            printf -- "\n[I] Started\n\n"
-        elif cat ./secrets.yaml ./play.yaml | podman kube play - ; then
-            printf -- "\n[I] Started with fall back\n\n"
-        fi
+        podman kube down ./combined.yaml
+        podman kube play ./combined.yaml &
         ;;
     "build")
         podman build -t yapipt-backend --file Containerfile_Yapipt ../src/ 
