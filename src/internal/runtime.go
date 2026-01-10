@@ -1,6 +1,9 @@
 package internal
 
 import (
+	"fmt"
+	"context"
+	"database/sql"
 	"encoding/json"
 	"errors"
 	"os"
@@ -8,6 +11,8 @@ import (
 	"yapipt/pkg"
 
 	"github.com/gorilla/websocket"
+	_ "github.com/lib/pq"
+	"github.com/redis/go-redis/v9"
 )
 
 
@@ -42,6 +47,10 @@ type Runtime struct{
 	HubMutex sync.Mutex
 	WSConnHub map[string]*ClientConn
 	BroadcastChan chan []byte
+
+	PSQL_DB *sql.DB
+	RedisDB *redis.Client
+	DBContext context.Context
 }
 
 func (R *Runtime)BroadcastMsgData(raw_bytes []byte) {
@@ -75,39 +84,59 @@ func (R *Runtime)BroadcastMsgIndct(raw_bytes []byte) {
 func InitRuntime(env_file string) (*Runtime, error) {
 	var R Runtime
 
-	err := R.saveEnv()
+	if err := R.saveEnv(); err != nil {
+		return &R, err
+	}
+
+	host := "localhost"
+	port := "5432"
+	user := os.Getenv("DB_USER")
+	pass := os.Getenv("DB_PASSWORD")
+	dbname := os.Getenv("DB_NAME")
+
+	connStr := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=disable", host, port, user, pass, dbname)
+	
+	var err error
+	R.PSQL_DB, err = sql.Open("postgres", connStr)
 	if err != nil {
 		return &R, err
 	}
 
-	R.WSConnHub = make(map[string]*ClientConn)
+	if err = R.PSQL_DB.Ping(); err != nil {
+		return &R, fmt.Errorf("ping failed: %v", err)
+	}
 
+	R.RedisDB = redis.NewClient(&redis.Options{
+		Addr: "localhost:6379",
+		DB:   0,
+	})
+
+	R.WSConnHub = make(map[string]*ClientConn)
+	R.DBContext = context.Background()
 	R.BroadcastChan = make(chan []byte)
 
 	go func(R *Runtime) {
-		var raw_bytes []byte
-		for{
-			raw_bytes = <- R.BroadcastChan
-			if string(raw_bytes)=="" {
+		for raw_bytes := range R.BroadcastChan {
+			if string(raw_bytes) == "" {
 				continue
-			} else if string(raw_bytes)=="Close" {
+			} else if string(raw_bytes) == "Close" {
 				break
 			}
+			
 			var envlp pkg.Envelop
-			err = json.Unmarshal(raw_bytes, &envlp)
-			if err!=nil{
-				pkg.LogClientError("Unmarshal Error for rawBytes from client")
+			if err := json.Unmarshal(raw_bytes, &envlp); err != nil {
+				continue
 			}
+
+			R.HubMutex.Lock()
 			switch envlp.Type {
 			case pkg.MsgData:
 				R.BroadcastMsgData(raw_bytes)
 			case pkg.MsgIndct:
 				R.BroadcastMsgIndct(raw_bytes)
-			default:
-				pkg.LogWarn("Marshal unknown JSON format")
 			}
+			R.HubMutex.Unlock()
 		}
-		pkg.LogInfo("Broadcast GoRoutine Closed")
 	}(&R)
 
 	return &R, nil

@@ -31,3 +31,14 @@ type MsgIndctJSON struct{
 	User string `json:"user"`
 }
 
+
+type LoginJSON struct {
+	UserName string `json:"user_name"`
+	Password string `json:"password"`
+}
+
+type SessionTokenJSON struct {
+	Success bool `json:"success"`
+	UserName string `json:"user_name"`
+	SessionToken string `json:"session_token"`
+}

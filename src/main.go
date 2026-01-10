@@ -12,12 +12,13 @@ import (
 func main(){
 	R, err := internal.InitRuntime("env")
 	if err != nil {
-		pkg.LogError("Error Loading env")
+		pkg.LogError("Error Initing the Runtime "+err.Error())
 		return
 	}
 	mux := http.NewServeMux()
 
 	mux.HandleFunc("/ws", R.InitWSConn)
+	mux.HandleFunc("/api/user", R.Login)
 
 	sig := make(chan os.Signal, 1)
 	signal.Notify(sig, os.Interrupt, syscall.SIGTERM)

@@ -7,17 +7,17 @@ fi
 
 case "$1" in
     "start")
-        podman kube play ./combined.yaml &
+        podman kube play ./play.yaml &
         ;;
     "stop")
-        podman kube down ./combined.yaml
+        podman kube down ./play.yaml
         ;;
     "restart")
-        podman kube down ./combined.yaml
-        podman kube play ./combined.yaml &
+        podman kube down ./play.yaml
+        podman kube play ./play.yaml &
         ;;
     "build")
-        podman kube down ./combined.yaml
+        podman kube down ./play.yaml
         podman rmi yapipt-backend:latest
         podman rmi yapipt-nginx:latest
         podman build -t yapipt-backend --file Containerfile_Yapipt ../src/ 
@@ -25,12 +25,12 @@ case "$1" in
         yes | podman image prune
         ;;
     "buildrun")
-        podman kube down ./combined.yaml
+        podman kube down ./play.yaml
         podman rmi yapipt-backend:latest
         podman rmi yapipt-nginx:latest
         podman build -t yapipt-backend --file Containerfile_Yapipt ../src/ 
         podman build -t yapipt-nginx --file Containerfile_Nginx ./
-        podman kube play ./combined.yaml &
+        podman kube play ./play.yaml &
         yes | podman image prune
         ;;
     *)

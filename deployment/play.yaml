@@ -5,6 +5,19 @@ metadata:
 type: Opaque
 stringData:
   SERVER_TCP_PORT: "8080" 
+  DB_NAME: yapipt
+  DB_PASSWORD: password
+  DB_USER: appuser
+
+---
+
+apiVersion: v1
+kind: Secret
+metadata:
+  name: yapipt-db-env
+type: Opaque
+stringData:
+  POSTGRES_PASSWORD: password
 
 ---
 
@@ -17,15 +30,32 @@ metadata:
 spec:
   restartPolicy: Always
   containers:
-    - name: backend
-      image: "localhost/yapipt-backend"
+
+    - name: db
+      image: "docker.io/library/postgres:latest"
       resources:
         limits:
-          cpu: "250m"
-          memory: "256Mi"
+          cpu: "0.5"
+          memory: "512Mi"
       envFrom:
         - secretRef:
-            name: yapipt-env
+            name: yapipt-db-env
+      volumeMounts:
+        - name: localtime
+          mountPath: /etc/localtime
+          readOnly: true
+        - name: db-data
+          mountPath: /var/lib/postgresql
+        - name: db-init
+          mountPath: /docker-entrypoint-initdb.d/init.sql
+          readOnly: true
+
+    - name: redis
+      image: "docker.io/library/redis:latest"
+      resources:
+        limits:
+          cpu: "0.2"
+          memory: "512Mi"
       volumeMounts:
         - name: localtime
           mountPath: /etc/localtime
@@ -35,8 +65,8 @@ spec:
       image: "localhost/yapipt-nginx"
       resources:
         limits:
-          cpu: "200m"
-          memory: "128Mi"
+          cpu: "0.05"
+          memory: "64Mi"
       ports:
         - containerPort: 443
           hostPort: 8080
@@ -53,6 +83,20 @@ spec:
           readOnly: true
         - name: nginxcerts
           mountPath: /etc/nginx/certs
+
+    - name: backend
+      image: "localhost/yapipt-backend"
+      resources:
+        limits:
+          cpu: "0.75"
+          memory: "1024Mi"
+      envFrom:
+        - secretRef:
+            name: yapipt-env
+      volumeMounts:
+        - name: localtime
+          mountPath: /etc/localtime
+          readOnly: true
 
   volumes:
     - name: localtime
@@ -71,3 +115,12 @@ spec:
       hostPath:
         path: ./certs
         type: DirectoryOrCreate
+    - name: db-data
+      hostPath:
+        path: ./db-data
+        type: DirectoryOrCreate
+    - name: db-init
+      hostPath:
+        path: ../db/init.sql
+        type: File
+
