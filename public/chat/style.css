@@ -1,0 +1,182 @@
+@font-face{
+    font-family: space;
+    src: url("/SpaceMono-Regular.ttf");
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+:root {
+    --bg: #0b0e0c;
+    --fg: #00ff00;
+    --dim: #00aaaa;
+    --border: #1e3d1e;
+    --accent: #00ff00;
+    --msg: #e6e6e6;
+
+    --font: space, monospace;
+    --font-size: 14px;
+
+    --header-height: 52px;
+    --input-height: 56px;
+    --pad: 0.8rem;
+}
+
+body {
+    min-height: 100vh;
+    background: var(--bg);
+    color: var(--fg);
+    font-family: var(--font);
+    font-size: var(--font-size);
+
+    display: flex;
+    flex-direction: column;
+}
+
+.app-header {
+    height: var(--header-height);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    border-bottom: 1px solid var(--border);
+    font-size: 1.3rem;
+}
+
+.logout-btn {
+    position: absolute;
+    right: 12px;
+    background: transparent;
+    border: 1px solid var(--fg);
+    color: var(--fg);
+    padding: 4px 8px;
+    cursor: pointer;
+    font-family: var(--font);
+}
+
+.logout-btn:hover {
+    background: var(--fg);
+    color: var(--bg);
+}
+
+.messages {
+    position: fixed;
+    top: var(--header-height);
+    bottom: var(--input-height);
+    left: 0;
+    right: 0;
+
+    padding: var(--pad);
+    overflow-y: auto;
+
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+}
+
+
+
+/* Message Lines */
+.message {
+    max-width: 100%;
+    line-height: 1.4;
+    word-wrap: break-word;
+}
+
+/* Incoming */
+.message.incoming::before {
+    content: " ";
+    color: var(--dim);
+}
+
+/* Outgoing */
+.message.outgoing::before {
+    content: " ";
+    color: var(--accent);
+}
+
+.input-bar {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+
+    height: var(--input-height);
+    display: flex;
+    gap: 0.6rem;
+    padding: var(--pad);
+
+    border-top: 1px solid var(--border);
+    background: var(--bg);
+}
+
+
+
+.input-bar input {
+    flex: 1;
+    background: transparent;
+    border: none;
+    color: var(--fg);
+    font-family: var(--font);
+    font-size: 1rem;
+}
+
+.input-bar input:focus {
+    outline: none;
+}
+
+
+.input-bar button {
+    background: transparent;
+    color: var(--fg);
+    border: 1px solid var(--fg);
+    padding: 0.4rem 0.8rem;
+    font-family: var(--font);
+    cursor: pointer;
+}
+
+.input-bar button:hover {
+    background: var(--fg);
+    color: var(--bg);
+}
+
+
+.messages::-webkit-scrollbar {
+    width: 6px;
+}
+
+.messages::-webkit-scrollbar-thumb {
+    background: var(--border);
+}
+
+.message .username {
+    color: var(--fg);
+}
+
+.message .text {
+    color: var(--msg);
+}
+
+/* System messages (joined / left) */
+.message.system {
+    color: var(--dim);
+    text-align: center;
+    font-size: 0.85rem;
+    opacity: 0.8;
+}
+
+/* Typing indicator */
+.typing {
+    position: fixed;
+    bottom: calc(var(--input-height) + 6px);
+    left: var(--pad);
+    font-size: 0.8rem;
+    color: var(--dim);
+}
+
+.hidden {
+    display: none;
+}
