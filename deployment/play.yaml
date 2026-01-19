@@ -35,7 +35,7 @@ spec:
       image: "docker.io/library/postgres:latest"
       resources:
         limits:
-          cpu: "0.5"
+          cpu: "0.25"
           memory: "512Mi"
       envFrom:
         - secretRef:
@@ -54,8 +54,8 @@ spec:
       image: "docker.io/library/redis:latest"
       resources:
         limits:
-          cpu: "0.2"
-          memory: "512Mi"
+          cpu: "0.1"
+          memory: "128Mi"
       volumeMounts:
         - name: localtime
           mountPath: /etc/localtime
@@ -65,7 +65,7 @@ spec:
       image: "localhost/yapipt-nginx"
       resources:
         limits:
-          cpu: "0.05"
+          cpu: "0.15"
           memory: "64Mi"
       ports:
         - containerPort: 443
@@ -88,7 +88,7 @@ spec:
       image: "localhost/yapipt-backend"
       resources:
         limits:
-          cpu: "0.75"
+          cpu: "0.5"
           memory: "1024Mi"
       envFrom:
         - secretRef:
