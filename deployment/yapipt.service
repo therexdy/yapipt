@@ -1,0 +1,14 @@
+[Unit]
+Description=Yapipt Server
+After=default.target
+
+[Service]
+Type=simple
+WorkingDirectory=/path/to/dplymnt/dir
+ExecStart=/usr/bin/podman kube play play.yaml
+ExecStop=/usr/bin/podman kube down play.yaml
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
